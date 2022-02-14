@@ -1,5 +1,9 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using SkinsApiHealthChecks.Api.Context;
+using SkinsApiHealthChecks.Api.Custom.Checks;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +19,30 @@ builder.Services.AddDbContext<SkinContext>(options =>
 
 builder.Services
     .AddHealthChecks()
-    .AddDbContextCheck<SkinContext>();
+    .AddDbContextCheck<SkinContext>()
+    .AddCheck<SteamMarketplaceCheck>("steam_marketplace_check");
+
+
+var secretKey = builder.Configuration["Jwt:Key"];
+builder.Services.AddAuthentication(x =>
+{
+    x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(x =>
+{
+    x.RequireHttpsMetadata = false;
+    x.SaveToken = true;
+    x.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secretKey)),
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+    };
+});
+
 
 var app = builder.Build();
 
@@ -29,11 +56,15 @@ app.UseHttpsRedirection();
 
 app.UseRouting();
 
+app.UseAuthentication();
+
 app.UseAuthorization();
 
 app.UseEndpoints(endpoints =>
 {
-    endpoints.MapHealthChecks("/health");
+    endpoints.MapHealthChecks("/health")
+        .RequireAuthorization();
+
     endpoints.MapControllers();
 });
 

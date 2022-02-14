@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SkinsApiHealthChecks.Api.Context;
 using SkinsApiHealthChecksApi.Models;
@@ -15,6 +16,7 @@ namespace SkinsApiHealthChecksApi.Controllers
         }
 
         [HttpPost]
+        [Authorize]
         [Route("/api/skin/create")]
         public async Task<IActionResult> CreateAsync([FromBody] Skin skin)
         {
